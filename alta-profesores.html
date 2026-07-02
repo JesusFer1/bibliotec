@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alta Profesores - Administrador Bibliotec</title>
+    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="assets/css/panel.css">
+    <link rel="stylesheet" href="assets/css/alta.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">
+             <h2>BIBLIOTEC N°5 <span>Panel de Administración</span></h2>
+        </div>
+        <div id="contenedor-botones-cabecera">
+            <a href="index.html" class="btn-navegacion">Ir al Inicio</a>
+        </div>
+    </header>
+
+    <main class="contenedor-panel">
+        
+        <section class="tarjeta-panel">
+            <h3>Registrar Nuevo Perfil Docente</h3>
+            <p class="subtitulo">Ingresá las credenciales y tildá las reglas de cursos asignados para habilitarle el acceso al sistema local.</p>
+            
+            <form id="formulario-alta" onsubmit="registrarProfesorLocal(event)">
+              <div class="fila-formulario">
+    <div class="grupo-input" style="flex: 2; min-width: 250px;">
+        <label for="nombre-profe">Nombre Completo del Profesor</label>
+        <input type="text" id="nombre-profe" placeholder="Ej: Ing. Carlos Gimenez" required>
+    </div>
+    
+    <div class="grupo-input" style="flex: 1; min-width: 150px;">
+        <label for="dni-profe">Número de DNI (Usuario)</label>
+        <input type="text" id="dni-profe" placeholder="Ej: 22334455" required>
+    </div>
+
+    <div class="grupo-input" style="flex: 1; min-width: 150px;">
+        <label for="password-profe">Contraseña de Acceso</label>
+        <input type="password" id="password-profe" class="input-control" placeholder="Asigná una clave" required>
+    </div>
+</div>
+
+                <div class="fila-borde-alta">
+                    <label class="label-reglas">Cursos y Divisiones Autorizadas (Reglas):</label>
+                    <div class="grilla-cursos" id="contenedor-checkboxes-cursos">
+                        </div>
+                </div>
+
+                <div class="fila-borde-alta derecha">
+                    <button type="submit" class="btn-subir" id="btn-submit-alta">Dar de Alta Profesor</button>
+                </div>
+            </form>
+        </section>
+
+    </main>
+
+    <script>
+    const mapaNombresCursos = {
+        "4-1": { nombre: "4to 1ra", esp: "Informática" },
+        "4-2": { nombre: "4to 2da", esp: "Programación" },
+        "4-3": { nombre: "4to 3ra", esp: "MMO" },
+        "5-1": { nombre: "5to 1ra", esp: "Informática" },
+        "5-2": { nombre: "5to 2da", esp: "Programación" },
+        "5-3": { nombre: "5to 3ra", esp: "MMO" },
+        "6-1": { nombre: "6to 1ra", esp: "Informática" },
+        "6-2": { nombre: "6to 2da", esp: "Programación" },
+        "6-3": { nombre: "6to 3ra", esp: "MMO" },
+        "7-1": { nombre: "7mo 1ra", esp: "Informática" },
+        "7-2": { nombre: "7mo 2da", esp: "Programación" },
+        "7-3": { nombre: "7mo 3ra", esp: "MMO" }
+    };
+
+    window.onload = function() {
+        const contenedor = document.getElementById('contenedor-checkboxes-cursos');
+        contenedor.innerHTML = "";
+
+        Object.keys(mapaNombresCursos).forEach(idCurso => {
+            const c = mapaNombresCursos[idCurso];
+            const itemHtml = `
+                <label class="opcion-curso">
+                    <input type="checkbox" name="cursos-seleccionados" value="${idCurso}">
+                    <span>${c.nombre} (${c.esp})</span>
+                </label>
+            `;
+            contenedor.innerHTML += itemHtml;
+        });
+    };
+
+    function registrarProfesorLocal(event) {
+        event.preventDefault();
+
+        const btnSubmit = document.getElementById('btn-submit-alta');
+        const nombre = document.getElementById('nombre-profe').value.trim();
+        const dni = document.getElementById('dni-profe').value.trim();
+        const password = document.getElementById('password-profe').value;
+
+        const checkboxes = document.querySelectorAll('input[name="cursos-seleccionados"]:checked');
+        const cursosSeleccionados = [];
+        checkboxes.forEach(cb => cursosSeleccionados.push(cb.value));
+
+        if (cursosSeleccionados.length === 0) {
+            alert("Por favor, tildá al menos un curso asignado para las reglas del profesor.");
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Registrando...";
+
+        fetch('/api/registrar-profesor', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                nombre: nombre,
+                dni: dni,
+                password: password,
+                cursos: cursosSeleccionados
+            })
+        })
+        .then(res => {
+            return res.text().then(text => {
+                if (!res.ok) throw new Error(text);
+                return text;
+            });
+        })
+        .then(mensaje => {
+            alert(mensaje);
+            document.getElementById('formulario-alta').reset();
+        })
+        .catch(err => {
+            alert(err.message || "Error al conectar con el servidor local.");
+        })
+        .finally(() => {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Dar de Alta Profesor";
+        });
+    }
+    </script>
+</body>
+</html>

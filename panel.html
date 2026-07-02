@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Docente - Bibliotec</title>
+    <link rel="stylesheet" href="assets/css/panel.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">
+             <h2>BIBLIOTEC N°5 <span>Panel Docente</span></h2>
+        </div>
+        <div id="contenedor-botones-cabecera">
+            <a href="index.html" class="btn-navegacion">Ir al Inicio</a>
+        </div>
+    </header>
+
+    <main class="contenedor-panel">
+        
+        <section class="tarjeta-panel">
+            <h3>Subir Nuevo Archivo</h3>
+            <p class="subtitulo">Seleccioná un archivo de tu PC para subirlo a la biblioteca virtual de forma permanente.</p>
+            
+            <form id="formulario-subir" onsubmit="subirArchivoNode(event)">
+                <div class="fila-formulario">
+                    <div class="grupo-input" style="flex: 2;">
+                        <label for="titulo-archivo">Título del Documento / Software</label>
+                        <input type="text" id="titulo-archivo" placeholder="Ej: Instalador de Visual Studio Code" required>
+                    </div>
+                    
+                    <div class="grupo-input" style="flex: 1;">
+                        <label for="seleccionar-anio">Año</label>
+                        <select id="seleccionar-anio" required disabled>
+                            <option value="" disabled selected>Cargando...</option>
+                        </select>
+                    </div>
+
+                    <div class="grupo-input" style="flex: 1;">
+                        <label for="seleccionar-especialidad">Especialidad</label>
+                        <select id="seleccionar-especialidad" required disabled>
+                            <option value="" disabled selected>Cargando...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="fila-formulario alinear-abajo">
+          <div class="grupo-input">
+    <label>Seleccionar Archivo (Cualquier formato sin límite)</label>
+    
+    <div class="contenedor-file-personalizado">
+        <input type="file" id="input-archivo" name="input-archivo" required style="display: none;" onchange="actualizarNombreArchivo(this)">
+        
+        <button type="button" class="btn-buscar-archivo" onclick="document.getElementById('input-archivo').click()">Seleccionar archivo</button>
+        
+        <span id="nombre-archivo-texto" class="texto-archivo-vacio">Sin archivos seleccionados</span>
+    </div>
+</div>
+                    <button type="submit" class="btn-subir" id="btn-submit-form">Publicar Archivo</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="tarjeta-panel">
+            <h3>Mis Archivos Publicados</h3>
+            <div class="contenedor-tabla">
+                <table class="tabla-archivos">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Curso</th>
+                            <th>Especialidad</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-cuerpo-archivos">
+                        <tr>
+                            <td colspan="4" style="text-align:center; color:#999;">Cargando archivos desde el servidor...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+
+    const usuarioDniLogueado = sessionStorage.getItem('usuarioDniLogueado'); 
+    let shortagesCursosDocente = [];
+
+
+    const mapaNombresCursos = {
+        "4-1": { anio: "4", espId: "1", nombreAnio: "4to 1ra", nombreEsp: "Informática" },
+        "4-2": { anio: "4", espId: "2", nombreAnio: "4to 2da", nombreEsp: "Programación" },
+        "4-3": { anio: "4", espId: "3", nombreAnio: "4to 3ra", nombreEsp: "MMO" },
+        "5-1": { anio: "5", espId: "1", nombreAnio: "5to 1ra", nombreEsp: "Informática" },
+        "5-2": { anio: "5", espId: "2", nombreAnio: "5to 2da", nombreEsp: "Programación" },
+        "5-3": { anio: "5", espId: "3", nombreAnio: "5to 3ra", nombreEsp: "MMO" },
+        "6-1": { anio: "6", espId: "1", nombreAnio: "6to 1ra", nombreEsp: "Informática" },
+        "6-2": { anio: "6", espId: "2", nombreAnio: "6to 2da", nombreEsp: "Programación" },
+        "6-3": { anio: "6", espId: "3", nombreAnio: "6to 3ra", nombreEsp: "MMO" },
+        "7-1": { anio: "7", espId: "1", nombreAnio: "7mo 1ra", nombreEsp: "Informática" },
+        "7-2": { anio: "7", espId: "2", nombreAnio: "7mo 2da", nombreEsp: "Programación" },
+        "7-3": { anio: "7", espId: "3", nombreAnio: "7mo 3ra", nombreEsp: "MMO" }
+    };
+
+    window.onload = function() {
+
+        if (!usuarioDniLogueado) {
+            alert("No has iniciado sesión. Redireccionando...");
+            window.location.href = "login.html";
+            return;
+        }
+
+  
+        fetch(`/api/profesor/${usuarioDniLogueado}`)
+            .then(res => res.json())
+            .then(data => {
+                shortagesCursosDocente = data.cursos_permitidos.split(',');
+                configurarDesplegables();
+                cargarArchivosPublicados();
+            })
+            .catch(err => console.error("Error al obtener perfil del docente:", err));
+    };
+
+
+    function configurarDesplegables() {
+        const selectAnio = document.getElementById('seleccionar-anio');
+        const selectEsp = document.getElementById('seleccionar-especialidad');
+
+        let aniosPermitidos = new Set();
+        let especialidadesPermitidas = new Set();
+
+        shortagesCursosDocente.forEach(idCurso => {
+            if (mapaNombresCursos[idCurso]) {
+                aniosPermitidos.add(mapaNombresCursos[idCurso].anio);
+                especialidadesPermitidas.add(mapaNombresCursos[idCurso].espId);
+            }
+        });
+
+        selectAnio.innerHTML = '<option value="" disabled selected>Elegí año...</option>';
+        if(aniosPermitidos.has("4")) selectAnio.innerHTML += '<option value="4">4° Año</option>';
+        if(aniosPermitidos.has("5")) selectAnio.innerHTML += '<option value="5">5° Año</option>';
+        if(aniosPermitidos.has("6")) selectAnio.innerHTML += '<option value="6">6° Año</option>';
+        if(aniosPermitidos.has("7")) selectAnio.innerHTML += '<option value="7">7° Año</option>';
+        selectAnio.disabled = false;
+
+        selectEsp.innerHTML = '<option value="" disabled selected>Elegí especialidad...</option>';
+        if(especialidadesPermitidas.has("1")) selectEsp.innerHTML += '<option value="1">Informática</option>';
+        if(especialidadesPermitidas.has("2")) selectEsp.innerHTML += '<option value="2">Programación</option>';
+        if(especialidadesPermitidas.has("3")) selectEsp.innerHTML += '<option value="3">Maestro Mayor de Obra (MMO)</option>';
+        selectEsp.disabled = false;
+    }
+
+    function subirArchivoNode(event) {
+        event.preventDefault();
+
+        const btnSubmit = document.getElementById('btn-submit-form');
+        const titulo = document.getElementById('titulo-archivo').value.trim();
+        const anio = document.getElementById('seleccionar-anio').value;
+        const division = document.getElementById('seleccionar-especialidad').value;
+        const inputArchivo = document.getElementById('input-archivo');
+
+        // Recomponemos el formato clave original (ej: "4-2") para validar y registrar sin alterar tu estructura
+        const cursoSeleccionado = `${anio}-${division}`;
+
+        if (!shortagesCursosDocente.includes(cursoSeleccionado)) {
+            alert("¡Error de seguridad! No tenés autorización para el año o la especialidad seleccionada.");
+            return;
+        }
+
+        if (inputArchivo.files.length === 0) {
+            alert("Por favor, seleccioná un archivo.");
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.innerText = "Subiendo archivo...";
+
+        // Mandamos los datos reales usando FormData al servidor local
+        const formData = new FormData();
+        formData.append('titulo', titulo);
+        formData.append('dni', usuarioDniLogueado);
+        formData.append('curso', cursoSeleccionado);
+        formData.append('input-archivo', inputArchivo.files[0]);
+
+        fetch('/api/subir', {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.text())
+        .then(mensaje => {
+            alert(mensaje);
+            document.getElementById('formulario-subir').reset();
+            configurarDesplegables();
+            cargarArchivosPublicados();
+        })
+        .catch(err => alert("Error al subir el archivo al servidor local."))
+        .finally(() => {
+            btnSubmit.disabled = false;
+            btnSubmit.innerText = "Publicar Archivo";
+        });
+    }
+
+    function cargarArchivosPublicados() {
+        const tbody = document.getElementById('tabla-cuerpo-archivos');
+        tbody.innerHTML = "";
+
+        fetch('/api/documentos')
+            .then(res => res.json())
+            .then(lista => {
+                if (lista.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#999;">No hay archivos publicados en el servidor local.</td></tr>';
+                    return;
+                }
+
+                lista.forEach(doc => {
+                    const infoCurso = mapaNombresCursos[doc.curso] || { nombreAnio: doc.curso, nombreEsp: "General" };
+                    const fila = `
+                        <tr>
+                            <td><strong>${doc.titulo}</strong><br><small style="color:#666;">${doc.nombre_original}</small></td>
+                            <td>${infoCurso.nombreAnio}</td>
+                            <td>${infoCurso.nombreEsp}</td>
+                            <td>
+                                <a href="/${doc.ruta_archivo}" download="${doc.nombre_original}" class="btn-subir" style="padding: 5px 10px; font-size: 12px; text-decoration: none; display: inline-block; background-color:#28a745;">Descargar</a>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += fila;
+                });
+            })
+            .catch(err => console.error("Error al listar archivos:", err));
+    }
+    </script>
+</body>
+</html>

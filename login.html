@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Docentes - Técnica 5 Berazategui</title>
+    <link rel="stylesheet" href="assets/css/estilos.css">
+    <link rel="stylesheet" href="assets/css/login.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">
+             <h2>BIBLIOTEC N°5 <span>Berazategui</span></h2>
+        </div>
+        <nav class="nav">
+            <a href="index.html" class="btn-cabecera btn-ingresar">Volver al Inicio</a>
+        </nav>
+    </header>
+
+    <main class="contenedor-login">
+        <div class="tarjeta-login">
+            <h2>Ingreso Docentes</h2>
+            <p>Por favor, ingresá tu DNI y contraseña para gestionar los archivos.</p>
+
+            <form id="formulario-login">
+                <div class="grupo-input">
+                    <label for="dni">Número de DNI</label>
+                    <input type="text" id="dni" placeholder="Ej: 12345678" required autocomplete="username">
+                </div>
+
+                <div class="grupo-input">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" placeholder="Ingresá tu clave" required autocomplete="current-password">
+                </div>
+
+                <div id="mensaje-error" class="error-alerta" style="display: none; color: #ff4d4d; margin-bottom: 15px; font-size: 14px;">
+                    DNI o contraseña incorrectos.
+                </div>
+
+                <button type="submit" class="btn-enviar">Iniciar Sesión</button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 - Escuela de Educación Secundaria Técnica N°5 "Galileo Galilei" Berazategui</p>
+    </footer>
+
+    <script>
+    document.getElementById('formulario-login').addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const dni = document.getElementById('dni').value.trim();
+        const password = document.getElementById('password').value;
+        const mensajeError = document.getElementById('mensaje-error');
+
+        mensajeError.style.display = 'none';
+
+        fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ dni: dni, password: password })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Credenciales inválidas");
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Guardamos el DNI en la sesión para saber quién está operando
+                sessionStorage.setItem('usuarioDniLogueado', data.dni);
+                
+                // VALIDACIÓN: ¿Es su primera vez entrando?
+                if (data.requiereCambio) {
+                    window.location.href = "cambiar-clave.html"; // Al cambio de clave obligatorio
+                } else {
+                    window.location.href = "panel.html"; // Directo al panel
+                }
+            }
+        })
+        .catch(err => {
+            mensajeError.style.display = 'block';
+        });
+    });
+</script>
+</body>
+</html>

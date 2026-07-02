@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bibliotec - Biblioteca Virtual</title>
+    <link rel="stylesheet" href="assets/css/estilos.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">
+            <h2>BIBLIOTEC N°5 <span>Berazategui</span></h2>
+        </div>
+        <div id="contenedor-botones-cabecera">
+            <a href="index.html" class="btn-cabecera btn-ingresar">Volver al Inicio</a>
+        </div>
+    </header>
+
+    <section class="hero-institucional">
+        <h1>Biblioteca Técnica Digital</h1>
+        <p>Escuela Técnica N°5 - Repositorio de Material de Programación e Informática</p>
+    </section>
+
+    <main class="contenedor-principal">
+        
+        <section class="seccion-cursos">
+            <h2>Cursos y Materiales</h2>
+            <p>Seleccioná tu año para desplegar las divisiones y ver la vista previa o descargar los apuntes disponibles.</p>
+
+            <div class="lista-anios">
+                <details class="acordion-anio">
+                    <summary>4to Año</summary>
+                    <div class="contenido-especialidades">
+                        <span class="etiqueta">4to 1ra - Informática</span>
+                        <div id="lista-4-1"></div>
+
+                        <span class="etiqueta">4to 2da - Programación</span>
+                        <div id="lista-4-2"></div>
+
+                        <span class="etiqueta">4to 3ra - Maestro Mayor de Obra</span>
+                        <div id="lista-4-3"></div>
+                    </div>
+                </details>
+
+                <details class="acordion-anio">
+                    <summary>5to Año</summary>
+                    <div class="contenido-especialidades">
+                        <span class="etiqueta">5to 1ra - Informática</span>
+                        <div id="lista-5-1"></div>
+
+                        <span class="etiqueta">5to 2da - Programación</span>
+                        <div id="lista-5-2"></div>
+
+                        <span class="etiqueta">5to 3ra - Maestro Mayor de Obra</span>
+                        <div id="lista-5-3"></div>
+                    </div>
+                </details>
+
+                <details class="acordion-anio">
+                    <summary>6to Año</summary>
+                    <div class="contenido-especialidades">
+                        <span class="etiqueta">6to 1ra - Informática</span>
+                        <div id="lista-6-1"></div>
+
+                        <span class="etiqueta">6to 2da - Programación</span>
+                        <div id="lista-6-2"></div>
+
+                        <span class="etiqueta">6to 3ra - Maestro Mayor de Obra</span>
+                        <div id="lista-6-3"></div>
+                    </div>
+                </details>
+
+                <details class="acordion-anio">
+                    <summary>7mo Año</summary>
+                    <div class="contenido-especialidades">
+                        <span class="etiqueta">7mo 1ra - Informática</span>
+                        <div id="lista-7-1"></div>
+
+                        <span class="etiqueta">7mo 2da - Programación</span>
+                        <div id="lista-7-2"></div>
+
+                        <span class="etiqueta">7mo 3ra - Maestro Mayor de Obra</span>
+                        <div id="lista-7-3"></div>
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <aside class="seccion-historial">
+            <h3>Últimas Publicaciones</h3>
+            <div class="lista-historial" id="historial-global"></div>
+        </aside>
+
+    </main>
+
+    <div id="modal-vista-previa" class="modal-preview-overlay" onclick="cerrarVistaPrevia()">
+        <div class="modal-preview-card" onclick="event.stopPropagation()">
+            <div class="modal-preview-header">
+                <h3 id="preview-modal-titulo">Vista Previa del Archivo</h3>
+                <button class="btn-cerrar-modal" onclick="cerrarVistaPrevia()">&times;</button>
+            </div>
+            <div id="preview-modal-body" class="modal-preview-body">
+                </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 Escuela Técnica N°5. Desarrollado por Alumnos de Programación.</p>
+    </footer>
+
+    <script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyBZvcX--2_0-OuVwMAO2EBjSsFo4PFbi1w",
+        authDomain: "bibliotec-81ebf.firebaseapp.com",
+        databaseURL: "https://bibliotec-81ebf-default-rtdb.firebaseio.com",
+        projectId: "bibliotec-81ebf",
+        storageBucket: "bibliotec-81ebf.firebasestorage.app",
+        messagingSenderId: "461189824001",
+        appId: "1:461189824001:web:107355a92ed945e6f28a00"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    let高度CursosDelProfesor = [];
+
+    function generarIconoVistaPrevia(nombreArchivo) {
+        if (!nombreArchivo) return { ext: 'FILE', clase: 'pvw-file' };
+        const ext = nombreArchivo.split('.').pop().toLowerCase();
+        
+        if (['py', 'js', 'html', 'css', 'c', 'cpp', 'php', 'txt'].includes(ext)) {
+            return { ext: ext, clase: 'pvw-code' };
+        } else if (ext === 'pdf') {
+            return { ext: 'pdf', clase: 'pvw-pdf' };
+        } else if (['exe', 'msi'].includes(ext)) {
+            return { ext: 'exe', clase: 'pvw-exe' };
+        } else if (['zip', 'rar', '7z'].includes(ext)) {
+            return { ext: 'zip', clase: 'pvw-zip' };
+        } else if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+            return { ext: 'img', clase: 'pvw-code' };
+        }
+        return { ext: ext.substring(0, 3), clase: 'pvw-file' };
+    }
+
+
+   function abrirVistaPrevia(titulo, nombreArchivo, contenidoDataURI) {
+        const modal = document.getElementById('modal-vista-previa');
+        const modalTitulo = document.getElementById('preview-modal-titulo');
+        const modalBody = document.getElementById('preview-modal-body');
+        
+        modalTitulo.innerText = `${titulo} (${nombreArchivo})`;
+        modalBody.innerHTML = `<p style="color:#666; text-align:center;">Cargando vista previa del documento...</p>`;
+        modal.classList.add('mostrar-modal');
+
+        const ext = nombreArchivo.split('.').pop().toLowerCase();
+
+
+        if (ext === 'pdf') {
+            modalBody.innerHTML = `
+                <div style="width:100%; height:65vh;">
+                    <iframe src="${contenidoDataURI}" width="100%" height="100%" style="border:none; border-radius:6px;"></iframe>
+                </div>`;
+        }
+
+        else if (['docx', 'doc'].includes(ext)) {
+
+            if (contenidoDataURI.startsWith('http')) {
+                modalBody.innerHTML = `
+                    <div style="width:100%; height:65vh;">
+                        <iframe src="https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(contenidoDataURI)}" width="100%" height="100%" style="border:none;"></iframe>
+                    </div>`;
+            } else {
+
+                modalBody.innerHTML = `
+                    <div class="alerta-no-preview" style="padding: 40px 15px;">
+                        <span style="font-size: 45px;">📝</span>
+                        <h4>Documento de Word detectado</h4>
+                        <p>Los archivos de Microsoft Word (.docx) procesados de forma local se descargan directamente en tu equipo para abrirse de forma segura con Office o Word Online.</p>
+                        <a href="${contenidoDataURI}" download="${nombreArchivo}" class="btn-descargar" style="margin-top:15px; display:inline-block; padding:10px 20px;">Abrir Documento</a>
+                    </div>`;
+            }
+        }
+
+        else if (['png', 'jpg', 'jpeg', 'gif'].includes(ext)) {
+            modalBody.innerHTML = `<div style="text-align:center;"><img src="${contenidoDataURI}" class="img-preview-render" /></div>`;
+        }
+      
+        else if (['py', 'js', 'html', 'css', 'c', 'cpp', 'php', 'txt'].includes(ext)) {
+            try {
+                const base64Contenido = contenidoDataURI.split(',')[1];
+                const textoDecodificado = decodeURIComponent(escape(atob(base64Contenido)));
+                modalBody.innerHTML = `<pre class="codigo-preview-render"><code>${escapeHTML(textoDecodificado)}</code></pre>`;
+            } catch (e) {
+                modalBody.innerHTML = `<p style="color:#e74c3c; font-weight:600; text-align:center;">No se pudo procesar el script de código fuente.</p>`;
+            }
+        }
+
+        else {
+            modalBody.innerHTML = `
+                <div class="alerta-no-preview">
+                    <span style="font-size: 40px;">📦</span>
+                    <h4>Previsualización no disponible para .${ext}</h4>
+                    <p>Por políticas de seguridad del sistema operativo, los archivos instaladores o paquetes comprimidos no se pueden ejecutar dentro del navegador. Deben descargarse e instalarse en la computadora.</p>
+                </div>`;
+        }
+    }
+
+    function cerrarVistaPrevia() {
+        document.getElementById('modal-vista-previa').classList.remove('mostrar-modal');
+    }
+
+    function escapeHTML(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    auth.onAuthStateChanged(user => {
+        const cabecera = document.getElementById('contenedor-botones-cabecera');
+        if (!cabecera) return;
+
+        if (user) {
+            let dniExtraido = "";
+            if (user.email && user.email.includes("@")) {
+                dniExtraido = user.email.split("@")[0];
+            }
+
+            db.collection("profesores").where("Dni", "==", dniExtraido).get().then(querySnapshot => {
+                if (!querySnapshot.empty) {
+                    const snap = querySnapshot.docs[0];
+                    const datosProfesor = snap.data();
+
+                    if (datosProfesor.requiere_cambio_clave === true) {
+                        cabecera.innerHTML = `<a href="login.html" class="btn-cabecera btn-ingresar">¿Sos profesor?</a>`;
+                        cursosDelProfesor = [];
+                    } else {
+                        cursosDelProfesor = datosProfesor.CursosPermitidos || [];
+                        cabecera.innerHTML = `
+                            <div class="navegacion-movil-compacta">
+                                <a href="panel.html" class="btn-cabecera btn-panel">Panel</a>
+                                <button onclick="cerrarSesionDesdeInicio()" class="btn-cabecera btn-cerrar">Salir</button>
+                            </div>
+                        `;
+                    }
+                } else {
+                    cabecera.innerHTML = `<a href="login.html" class="btn-cabecera btn-ingresar">¿Sos profesor?</a>`;
+                    cursosDelProfesor = [];
+                }
+                cargarTodo();
+            }).catch((err) => {
+                console.error("Error al mapear profesor:", err);
+                cabecera.innerHTML = `<a href="login.html" class="btn-cabecera btn-ingresar">¿Sos profesor?</a>`;
+                cursosDelProfesor = [];
+                cargarTodo();
+            });
+        } else {
+            cabecera.innerHTML = `<a href="login.html" class="btn-cabecera btn-ingresar">¿Sos profesor?</a>`;
+            cursosDelProfesor = [];
+            cargarTodo();
+        }
+    });
+
+    function cargarTodo() {
+        const listaCursos = ["4-1", "4-2", "4-3", "5-1", "5-2", "5-3", "6-1", "6-2", "6-3", "7-1", "7-2", "7-3"];
+        
+        listaCursos.forEach(id => {
+            const contenedorCurso = document.getElementById(`lista-${id}`);
+            if (!contenedorCurso) return;
+            
+            db.collection("documentos").where("curso", "==", id).get().then(snap => {
+                contenedorCurso.innerHTML = snap.empty ? '<p style="font-size:12px; color:#aaa; padding: 5px 0; font-style: italic;">Sin archivos en esta división.</p>' : "";
+                snap.forEach(d => {
+                    const archivo = d.data();
+                    const esMiCurso = cursosDelProfesor.includes(id);
+                    const configIcono = generarIconoVistaPrevia(archivo.nombreOriginal);
+                    
+                    const tituloEscapado = archivo.titulo.replace(/'/g, "\\'");
+                    const nombreEscapado = archivo.nombreOriginal.replace(/'/g, "\\'");
+
+                    contenedorCurso.innerHTML += `
+                        <div class="tarjeta-archivo" style="border-left:${esMiCurso ? '3px solid #f39c12' : '1px solid #e1e8ed'}; display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+                            <div class="bloque-izquierda-archivo" onclick="abrirVistaPrevia('${tituloEscapado}', '${nombreEscapado}', '${archivo.archivoContenido}')" style="cursor:pointer; flex-grow:1;">
+                                <div class="preview-box ${configIcono.clase}">
+                                    ${configIcono.ext}
+                                </div>
+                                <div class="info-archivo">
+                                    <h4>${archivo.titulo} <span style="font-size:11px; color:#3b82f6; font-weight:normal; margin-left:5px;">(Ver vista previa)</span></h4>
+                                    <span>${archivo.nombreOriginal || 'Archivo'}</span>
+                                </div>
+                            </div>
+                            <div class="bloque-acciones-descarga">
+                                <a href="${archivo.archivoContenido}" download="${archivo.nombreOriginal}" class="btn-descargar">Descargar</a>
+                                ${esMiCurso ? `<button onclick="eliminarDesdeInicio('${d.id}')" class="btn-eliminar-inicio">Eliminar</button>` : ""}
+                            </div>
+                        </div>`;
+                });
+            });
+        });
+
+        db.collection("documentos").orderBy("fechaSubida", "desc").limit(5).get().then(snap => {
+            const historialContenedor = document.getElementById('historial-global');
+            if (!historialContenedor) return;
+            
+            historialContenedor.innerHTML = snap.empty ? '<p style="font-size:13px; color:#aaa; font-style:italic;">No hay publicaciones recientes.</p>' : "";
+            
+            snap.forEach(d => {
+                const archivo = d.data();
+                let cursoTexto = "N/A";
+                if (archivo.curso && archivo.curso.includes("-")) {
+                    const partes = archivo.curso.split("-");
+                    const mapaEsp = {"1": "Inf.", "2": "Prog.", "3": "MMO"};
+                    cursoTexto = `${partes[0]}to (${mapaEsp[partes[1]] || 'Téc.'})`;
+                }
+
+                const configIconoSide = generarIconoVistaPrevia(archivo.nombreOriginal);
+                const tituloEscapado = archivo.titulo.replace(/'/g, "\\'");
+                const nombreEscapado = archivo.nombreOriginal.replace(/'/g, "\\'");
+
+                historialContenedor.innerHTML += `
+                    <div class="tarjeta-archivo side-compacto">
+                        <div class="bloque-izquierda-archivo" onclick="abrirVistaPrevia('${tituloEscapado}', '${nombreEscapado}', '${archivo.archivoContenido}')" style="cursor:pointer; flex-grow:1;">
+                            <div class="preview-box ${configIconoSide.clase} size-side">
+                                ${configIconoSide.ext}
+                            </div>
+                            <div class="info-archivo">
+                                <h4>${archivo.titulo}</h4>
+                                <span class="badge-curso-historial">Curso: ${cursoTexto}</span>
+                            </div>
+                        </div>
+                        <a href="${archivo.archivoContenido}" download="${archivo.nombreOriginal}" class="btn-descargar">Descargar</a>
+                    </div>`;
+            });
+        });
+    }
+
+    function cerrarSesionDesdeInicio() {
+        auth.signOut().then(() => { window.location.reload(); });
+    }
+
+    function eliminarDesdeInicio(id) {
+        if(confirm("¿Seguro que querés borrar este archivo de la biblioteca?")) {
+            db.collection("documentos").doc(id).delete().then(() => { cargarTodo(); });
+        }
+    }
+</script>
+</body>
+</html>

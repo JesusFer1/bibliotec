@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Actualizar Contraseña - Técnica 5 Berazategui</title>
+    <link class="link-estilo" rel="stylesheet" href="assets/css/estilos.css">
+    <link class="link-estilo" rel="stylesheet" href="assets/css/cambiar-clave.css">
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">
+            <h2>BIBLIOTEC N°5 <span>Seguridad</span></h2>
+        </div>
+        <div id="contenedor-botones-cabecera">
+            <a href="index.html" class="btn-cabecera btn-ingresar">Volver al Inicio</a>
+        </div>
+    </header>
+
+    <main class="contenedor-clave">
+        <div class="tarjeta-clave">
+            <h2>Actualizar Contraseña</h2>
+            <p>Por seguridad se proporcionó una contraseña automática. Por favor, cambiá tu contraseña.</p>
+
+            <form id="formulario-cambio">
+                <div class="grupo-input">
+                    <label for="nueva-password">Nueva Contraseña</label>
+                    <input type="password" id="nueva-password" placeholder="Mínimo 6 caracteres" required minlength="6">
+                </div>
+
+                <div class="grupo-input">
+                    <label for="confirmar-password">Confirmar Nueva Contraseña</label>
+                    <input type="password" id="confirmar-password" placeholder="Repetí tu nueva contraseña" required minlength="6">
+                </div>
+
+                <div id="mensaje-error" class="error-alerta" style="display: none; color: #ff4d4d; margin-bottom: 15px; font-size: 14px;"></div>
+
+                <button type="submit" class="btn-enviar">Guardar y Continuar</button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2026 - Escuela de Educación Secundaria Técnica N°5 "Galileo Galilei" Berazategui</p>
+    </footer>
+
+    <script>
+        document.getElementById('formulario-cambio').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const dniLogueado = sessionStorage.getItem('usuarioDniLogueado');
+            const nuevaPassword = document.getElementById('nueva-password').value;
+            const confirmarPassword = document.getElementById('confirmar-password').value;
+            const mensajeError = document.getElementById('mensaje-error');
+
+            mensajeError.style.display = 'none';
+
+            // Seguridad de página: si no hay un DNI en sesión, lo mandamos al login
+            if (!dniLogueado) {
+                alert("Sesión inválida.");
+                window.location.href = "login.html";
+                return;
+            }
+
+            // Validación de coincidencia local en el navegador
+            if (nuevaPassword !== confirmarPassword) {
+                mensajeError.innerText = "Las contraseñas no coinciden.";
+                mensajeError.style.display = 'block';
+                return;
+            }
+
+            // Mandamos la clave real al servidor local de Node
+            fetch('/api/cambiar-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    dni: dniLogueado,
+                    nuevaPassword: nuevaPassword
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(text => { throw new Error(text); });
+                }
+                return res.text();
+            })
+            .then(mensaje => {
+                alert(mensaje); // "¡Contraseña actualizada con éxito!"
+                window.location.href = "panel.html"; // Lo dejamos pasar al panel
+            })
+            .catch(err => {
+                mensajeError.innerText = err.message || "Error al actualizar la contraseña.";
+                mensajeError.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
